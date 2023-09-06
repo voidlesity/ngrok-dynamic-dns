@@ -86,7 +86,7 @@ def update_config(config, all_vars):
 
     root = Tk()
     root.title("Dynamic DNS MC configuration")
-    root.geometry(f"400x400")
+    root.geometry(f"500x400")
 
     root.protocol("WM_DELETE_WINDOW", on_cancel)
 
@@ -100,7 +100,7 @@ def update_config(config, all_vars):
         entry_text.set(config['DEFAULT'].get(var, ''))
         entry_text.trace("w", check_entries)
 
-        entry = Entry(root, textvariable=entry_text, width=25, bg='#555555', fg='#FFFFFF', insertbackground='grey', font=("Consolas", 16))
+        entry = Entry(root, textvariable=entry_text, width=35, bg='#555555', fg='#FFFFFF', insertbackground='grey', font=("Consolas", 16))
         entry.pack(pady=5)
 
         entries[var] = entry_text
@@ -154,20 +154,24 @@ def main():
     prev_port = None
 
     while True:
-        response = requests.get(ngrok_api_url)
-        response.raise_for_status()
+        try:
+            response = requests.get(ngrok_api_url)
+            response.raise_for_status()
 
-        if response.status_code == 200:
-            ngrok_data = response.json()['tunnels'][0]['public_url'].strip("tcp://").split(":")
-            target = ngrok_data[0]
-            port = ngrok_data[1]
+            if response.status_code == 200:
+                ngrok_data = response.json()['tunnels'][0]['public_url'].strip("tcp://").split(":")
+                target = ngrok_data[0]
+                port = ngrok_data[1]
 
-            if target != prev_target or port != prev_port:
-                updateDNS(target, port, api_token, zone_id, record_id)
-                prev_target = target
-                prev_port = port
+                if target != prev_target or port != prev_port:
+                    updateDNS(target, port, api_token, zone_id, record_id)
+                    prev_target = target
+                    prev_port = port
 
-        time.sleep(30)
+            time.sleep(30)
+        except Exception as e:
+            messagebox.showerror("Error", f"An error occurred while trying to fetch tunnel info:\n{e}\n\nMake sure the Ngrok URL is set correctly.")
+            sys.exit()
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Dynamic DNS for a TCP Ngrok Tunnel using cloudflare.')
