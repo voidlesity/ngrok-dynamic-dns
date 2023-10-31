@@ -1,2 +1,2 @@
 call env\Scripts\activate
-call pyinstaller --noconsole NgrokDynamicDNS.py
+call pyinstaller --noconsole --onefile --icon=icon.ico NgrokDynamicDNS.py
