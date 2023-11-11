@@ -6,11 +6,11 @@ import subprocess
 import requests
 import pystray
 import winreg
+import psutil
 import time
 import json
 import sys
 import os
-
 
 def readConfig(configFilePath):
     config = configparser.ConfigParser()
@@ -26,7 +26,6 @@ def readConfig(configFilePath):
             'autostart': True
         }
     return config
-
 
 def updateConfig():
     def displayRecords(records):
@@ -118,17 +117,9 @@ def updateConfig():
 
     root.mainloop()
 
-
 def updateDns(target, port, apiToken, zoneId, recordId):
     with contextlib.suppress(Exception):
         response = requests.patch(f"https://api.cloudflare.com/client/v4/zones/{zoneId}/dns_records/{recordId}", json={"data": {"port": port, "target": target}}, headers={"Authorization": f"Bearer {apiToken}"})
-        if response.status_code != 200:
-            errorData = json.loads(response.content)
-            errorMessages = [error['message'] for error in errorData.get('errors', [])]
-            errorMessageStr = "\n".join(errorMessages)
-            messagebox.showerror("Error", f"An error occurred while updating DNS:\n{errorMessageStr}\n\nMake sure your API token has the right privileges.")
-            stop()
-
 
 def checkForUpdates():
     response = requests.get("https://api.github.com/repos/voidlesity/ngrok-dynamic-dns/releases/latest").json()
@@ -146,6 +137,13 @@ def checkForUpdates():
             subprocess.run(["NgrokDynamicDNS-installer.exe"])
             stop()
 
+def checkForMultipleInstances():
+    process_count = 0
+    for process in psutil.process_iter(['name']):
+        if process.info['name'] == "NgrokDynamicDNS.exe":
+            process_count += 1
+            if process_count > 2:
+                stop()
 
 def toggleAutostart():
     config.set('DEFAULT', 'autostart', f"{not config.getboolean('DEFAULT', 'autostart')}")
@@ -164,38 +162,29 @@ def autostart():
             else:
                 winreg.DeleteValue(registry_key, "Ngrok Dynamic DNS")
 
-
 def stop():
     icon.stop()
     os._exit(0)
 
-
 def main():
     prevTarget = None
     prevPort = None
-
     while True:
-        try:
+        with contextlib.suppress(Exception):
             response = requests.get(ngrokApiUrl)
             response.raise_for_status()
-
             if response.status_code == 200:
                 ngrokData = response.json()['tunnels'][0]['public_url'].strip("tcp://").split(":")
                 target = ngrokData[0]
                 port = ngrokData[1]
-
                 if target != prevTarget or port != prevPort:
                     updateDns(target, port, apiToken, zoneId, recordId)
                     prevTarget = target
                     prevPort = port
-
             time.sleep(30)
-        except Exception as e:
-            messagebox.showerror("Error", f"An error occurred while trying to fetch tunnel info:\n{e}\n\nMake sure the Ngrok URL is set correctly.")
-            stop()
 
 if __name__ == "__main__":
-    currentVersion = "v1.1.0"
+    currentVersion = "v1.1.1"
     allVars = ['api_token', 'zone_id', 'record_id', 'ngrok_api_url']
 
     configFilePath = os.path.join(os.path.expanduser("~"), ".config", "voidlesity", "NgrokDynamicDNS.config")
@@ -220,6 +209,7 @@ if __name__ == "__main__":
     icon = pystray.Icon("NgrokDynamicDNS", iconImage, title="NgrokDynamicDNS", menu=menu)
     icon.run_detached()
 
+    checkForMultipleInstances()
     checkForUpdates()
     autostart()
     main()
