@@ -1,3 +1,6 @@
+# IMPORTANT !!
+#### Ngrok has modified their free tier, and now you are limited to 1GB of traffic per month through their tunnels. Therefore, if you intend to use this service daily, you might run out of the allocatted data before the month ends.
+
 # Dynamic DNS for TCP Ngrok Tunnel using Cloudflare
 
 This Python program allows you to dynamically update your Cloudflare DNS records to point to a TCP Ngrok tunnel. It's especially handy for applications where you want to expose a local server to the internet, but the IP might change (for instance, if using a service like Ngrok). The program ensures that the DNS record is always updated with the latest Ngrok tunnel information.
