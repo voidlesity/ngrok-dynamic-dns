@@ -1,0 +1,6 @@
+env/**
+dist/**
+build/**
+
+**.spec
+**.exe
